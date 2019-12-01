@@ -1,90 +1,136 @@
-# FROM defines the base image
-# FROM ubuntu16.04
-# FROM ubuntu:latest
+#FROM ubuntu
 FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu16.04
 
-######################################
-# SECTION 1: Essentials              #
-######################################
+ENV DEBIAN_FRONTEND noninteractive
 
-# Set up SSH server (https://docs.docker.com/engine/examples/running_ssh_service/)
-RUN apt-get update && apt-get install -y openssh-server
-RUN mkdir /var/run/sshd
-RUN echo 'root:source' | chpasswd
-RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-# SSH login fix. Otherwise user is kicked off after login
-RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-ENV NOTVISIBLE "in users profile"
-RUN echo "export VISIBLE=now" >> /etc/profile
+COPY container_init.sh /
+COPY run.sh /
+COPY pangolin_setup_debugged.py /
+COPY ORBvoc.txt.tar.gz /
+COPY pydbow3_test.py /
 
-#Fix SSH mode issue
-RUN echo "export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:\$PATH" >> /root/.bashrc
-RUN echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/nvidia/lib:/usr/local/nvidia/lib64" >> /root/.bashrc
+RUN tar -xvzf ORBvoc.txt.tar.gz && ls -a
 
-#Update apt-get and upgrade
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils # Fix 
-RUN apt-get -y upgrade
+RUN apt-get update && apt-get install -y python-software-properties software-properties-common &&  \
+    apt-get upgrade -y && apt-get install -y gnupg && \
+    add-apt-repository ppa:x2go/stable
+RUN apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 E1F958385BFE2B6E
 
-#Install python3 pip3
-RUN apt-get -y install python3
-RUN apt-get -y install python3-pip
-RUN pip3 install pip --upgrade
-RUN pip3 install numpy scipy
+RUN apt-get update && apt-get install -y less locales sudo zsh x2goserver
+RUN echo "deb http://packages.x2go.org/debian stretch extras main\n\
+deb-src http://packages.x2go.org/debian stretch extras main" \
+> /etc/apt/sources.list.d/x2go.list
 
-#Install python2.7  pip
-RUN apt-get -y install python2.7
-RUN wget https://bootstrap.pypa.io/get-pip.py && python2.7 get-pip.py
-RUN pip install pip --upgrade
-RUN pip install numpy scipy
+RUN sed -i 's/# de_CH.UTF-8 UTF-8/de_CH.UTF-8 UTF-8/' /etc/locale.gen && \
+    sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+    ln -fs /etc/locale.alias /usr/share/locale/locale.alias && \
+    locale-gen && update-locale LANG=en_US.UTF-8
+#RUN cp /usr/share/zoneinfo/Europe/Zurich /etc/localtime && \
+#    echo "Europe/Zurich" >  /etc/timezone
 
-# Set up ssh keys in order to be able to checkout TorrVision
-ADD ./install/ssh-keys /root/.ssh
-RUN chmod -R 600 /root/.ssh
-RUN ssh-keyscan github.com >> ~/.ssh/known_hosts
+# configure system
+RUN sed -i 's/^#X11Forwarding.*/X11Forwarding yes/' /etc/ssh/sshd_config && \
+    sed -i "s/Port 22/#Port 22/g" /etc/ssh/sshd_config && \
+    echo "Port 2222" >> /etc/ssh/sshd_config && \
+    x2godbadmin --createdb
 
-#Set everything up for user "user"
-RUN mkdir /home/user
-RUN cp -R /root/.ssh /home/user/.ssh
-RUN chmod -R 600 /home/user/.ssh
+RUN mkdir -p /var/run/sshd
+
+RUN chmod +x /*.sh
+
+# install packages
+RUN apt-get update -y && apt-get upgrade -y && \
+    apt-get install -y xfce4 epiphany
+
+RUN apt-get update \
+    && apt-get install -y \
+          file \
+          git \
+          graphviz \
+          libcurl3-dev \
+          libfreetype6-dev \
+          libgraphviz-dev \
+          liblapack-dev \
+          libopenblas-dev \
+          libpng-dev \
+          libxft-dev \
+          openjdk-8-jdk \
+          python3-dev \
+          python3-pip \
+          python3 \
+          swig \
+          unzip \
+          wget \
+          zlib1g-dev \
+          cmake \
+          libeigen3-dev \
+          libsuitesparse-dev \
+          qtdeclarative5-dev \
+          qt5-qmake \
+          zip \
+          libjpeg-dev \
+          libtiff5-dev \
+          libopenexr-dev \
+          libgtk2.0-dev \
+          pkg-config
+
+# standart python libraries
+RUN pip3 install --ignore-installed pip \
+    && python3 -m pip install numpy
+#    && python3 -m pip install opencv-python==3.3.1.11 \
+#    && python3 -m pip install opencv-contrib-python==3.3.1.11
+
+RUN apt-get install -y libboost-all-dev && git clone https://github.com/foxis/pyDBoW3.git
+COPY build.sh /pyDBoW3/
+
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update
+RUN apt install g++-7 -y
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+RUN update-alternatives --config gcc
+
+RUN git clone https://github.com/torrvision/pyORBSLAM2.git
+
+RUN apt-get install -y libglew-dev
+
+COPY pangolin_setup_debugged.py /
+##COPY display_x11_debugged.cpp /
+#
+# pangolin installation
+RUN pip3 install PyOpenGL PyOpenGL_accelerate \
+    && git clone https://github.com/uoip/pangolin.git \
+    && mv pangolin_setup_debugged.py /pangolin/setup.py \
+#    && mv display_x11_debugged.cpp /pangolin/src/display/device/display_x11.cpp \
+    && cd pangolin \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && cd .. \
+    && python3 setup.py install \
+    && cd / && mkdir data
 
 # set up directories
 RUN mkdir /slamdoom
 RUN mkdir /slamdoom/tmp
 RUN mkdir /slamdoom/libs
+RUN mkdir /slamdoom/install
+RUN mkdir /slamdoom/install/orbslam2
+RUN mkdir /slamdoom/install/opencv3
 
+RUN apt-get install -y nano
 RUN apt-get update -y
 
-######################################
-# SECTION 2: CV packages             #
-######################################
+ADD install/opencv3/install.sh /slamdoom/install/opencv3/install.sh
+RUN chmod 777 /slamdoom/install/opencv3/install.sh && /slamdoom/install/opencv3/install.sh /slamdoom/libs python3
+#RUN chmod +x /slamdoom/install/opencv3/install.sh && /slamdoom/install/opencv3/install.sh /slamdoom/libs python3
 
-### -------------------------------------------------------------------
-### install OpenCV 3 with python3 bindings and CUDA 8
-### -------------------------------------------------------------------
-ADD ./install/opencv3 /slamdoom/install/opencv3
-RUN chmod +x /slamdoom/install/opencv3/install.sh && /slamdoom/install/opencv3/install.sh /slamdoom/libs python3
-
-
-
-#### -------------------------------------------------------------------
-#### Install ORBSLAM2
-#### -------------------------------------------------------------------
-ADD ./install/orbslam2 /slamdoom/install/orbslam2
+ADD install/orbslam2/install.sh /slamdoom/install/orbslam2/install.sh
+ADD install/orbslam2/orbslam2_slamdoom.git.patch /slamdoom/install/orbslam2/orbslam2_slamdoom.git.patch
 RUN chmod +x /slamdoom/install/orbslam2/install.sh && /slamdoom/install/orbslam2/install.sh
 
-
-############################################
-## SECTION: Additional libraries and tools #
-############################################
-
-RUN apt-get install -y vim
-
-############################################
-## SECTION: Final instructions and configs #
-############################################
-
 RUN apt-get install -y libcanberra-gtk-module
-RUN pip install matplotlib
+RUN pip3 install matplotlib
+RUN pip3 install bresenham
 
 # set up matplotlibrc file so have Qt5Agg backend by default
 RUN mkdir /root/.matplotlib && touch /root/.matplotlib/matplotlibrc && echo "backend: Qt5Agg" >> /root/.matplotlib/matplotlibrc
@@ -94,12 +140,25 @@ RUN apt-get install -y libboost-all-dev
 RUN pip install numpy --upgrade
 RUN pip3 install numpy --upgrade
 
-# Fix some linux issue
-ENV DEBIAN_FRONTEND teletype
+RUN cd /pyORBSLAM2/src && ./build.sh
 
-# Expose ports
-EXPOSE 22
+RUN export PYTHONPATH=/orbslam/src/build:$PYTHONPATH >> /root/.bashrc
 
-#Start SSH server
-CMD ["/usr/sbin/sshd", "-D"]
 
+RUN apt-get install -y libglew-dev
+
+##### upgrading GLX #############
+RUN apt-get update
+RUN apt-get install -y --fix-missing software-properties-common && \
+    add-apt-repository -y ppa:xorg-edgers/ppa && apt-get update  \
+    && apt install -y libdrm-dev  libx11-dev python-mako libx11-xcb-dev libxcb-dri2-0-dev mesa-utils\
+    libxcb-glx0-dev libxxf86vm-dev libxfixes-dev libxdamage-dev libxext-dev libexpat1-dev flex bison scons meson\
+#    libxcb-glx0-dev libxxf86vm-dev libxfixes-dev libxdamage-dev libxext-dev libexpat1-dev flex bison meson\
+    && git clone https://gitlab.freedesktop.org/mesa/mesa.git \
+    && cd mesa \
+    && scons libgl-xlib force_scons=1\
+#    && meson libgl-xlib \
+    && echo "export LD_LIBRARY_PATH=/mesa/build/linux-x86_64-debug/gallium/targets/libgl-xlib/:$LD_LIBRARY_PATH" >> /root/.bashrc
+
+EXPOSE 2222
+CMD ["/run.sh"]
