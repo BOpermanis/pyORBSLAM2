@@ -29,3 +29,11 @@
 *.app
 
 .idea
+
+/src/bin/*
+/src/build/*
+/src/CMakeFiles/*
+
+/src/cmake_install.cmake
+/src/CMakeCache.txt
+/src/Makefile
