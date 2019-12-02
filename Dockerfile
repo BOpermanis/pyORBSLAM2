@@ -7,7 +7,6 @@ COPY container_init.sh /
 COPY run.sh /
 COPY pangolin_setup_debugged.py /
 COPY ORBvoc.txt.tar.gz /
-COPY pydbow3_test.py /
 
 RUN tar -xvzf ORBvoc.txt.tar.gz && ls -a
 
@@ -80,15 +79,14 @@ RUN pip3 install --ignore-installed pip \
 #    && python3 -m pip install opencv-python==3.3.1.11 \
 #    && python3 -m pip install opencv-contrib-python==3.3.1.11
 
-RUN apt-get install -y libboost-all-dev && git clone https://github.com/foxis/pyDBoW3.git
-COPY build.sh /pyDBoW3/
+RUN apt-get install -y libboost-all-dev
 
 RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update
 RUN apt install g++-7 -y
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
 RUN update-alternatives --config gcc
 
-RUN git clone https://github.com/torrvision/pyORBSLAM2.git
+RUN git clone https://github.com/BOpermanis/pyORBSLAM2.git
 
 RUN apt-get install -y libglew-dev
 
@@ -117,7 +115,7 @@ RUN mkdir /slamdoom/install
 RUN mkdir /slamdoom/install/orbslam2
 RUN mkdir /slamdoom/install/opencv3
 
-RUN apt-get install -y nano
+RUN apt-get install -y nano libglew-dev gdb
 RUN apt-get update -y
 
 ADD install/opencv3/install.sh /slamdoom/install/opencv3/install.sh
@@ -131,21 +129,16 @@ RUN chmod +x /slamdoom/install/orbslam2/install.sh && /slamdoom/install/orbslam2
 RUN apt-get install -y libcanberra-gtk-module
 RUN pip3 install matplotlib
 RUN pip3 install bresenham
-
-# set up matplotlibrc file so have Qt5Agg backend by default
-RUN mkdir /root/.matplotlib && touch /root/.matplotlib/matplotlibrc && echo "backend: Qt5Agg" >> /root/.matplotlib/matplotlibrc
-RUN apt-get install -y gdb
-
-RUN apt-get install -y libboost-all-dev
 RUN pip install numpy --upgrade
 RUN pip3 install numpy --upgrade
+RUN mkdir /root/.matplotlib && touch /root/.matplotlib/matplotlibrc && echo "backend: Qt5Agg" >> /root/.matplotlib/matplotlibrc
+
+# set up matplotlibrc file so have Qt5Agg backend by default
+RUN apt-get install -y
 
 RUN cd /pyORBSLAM2/src && ./build.sh
 
 RUN export PYTHONPATH=/orbslam/src/build:$PYTHONPATH >> /root/.bashrc
-
-
-RUN apt-get install -y libglew-dev
 
 ##### upgrading GLX #############
 RUN apt-get update
