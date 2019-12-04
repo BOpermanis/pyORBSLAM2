@@ -64,19 +64,6 @@ class SLAMClass{
             return ret;
         }
 
-//    PyObject* getmap(){
-////            auto mappoints = this->slam_obj->GetAllMapPoints();
-//            auto mappoints = this->slam_obj->GetTrackedMapPoints();
-//            int n = mappoints.size();
-//            cv::Mat out;
-//            for(int i=0; i<n; i++){
-//                out.push_back(mappoints[i]->GetWorldPos());
-//                auto v = mappoints[i]->GetReferenceKeyFrame2();
-//                out.push_back(v);
-//            }
-//            return cvt.toNDArray(out);
-//        }
-
     PyObject* getmap(){
         return cvt.toNDArray(this->slam_obj->GetMapCloud());
     }
