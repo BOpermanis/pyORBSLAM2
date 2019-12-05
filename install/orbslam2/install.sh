@@ -13,4 +13,4 @@ git clone https://github.com/raulmur/ORB_SLAM2.git orbslam2
 cd /slamdoom/tmp/orbslam2
 git config --global user.name "Slamdoom" && git config --global user.email "slamdoom@slam.doom" && git am --signoff < /slamdoom/install/orbslam2/orbslam2_slamdoom.git.patch
 chmod +x build.sh && sleep 1 && ./build.sh
-cp -R /slamdoom/tmp/orbslam2 /slamdoom/libs/orbslam2
+#cp -R /slamdoom/tmp/orbslam2 /slamdoom/libs/orbslam2
