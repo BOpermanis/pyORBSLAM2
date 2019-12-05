@@ -13,6 +13,12 @@
     <facet type="Python" name="Python facet">
       <configuration sdkName="Python 3.5 (pyORBSLAM2)" />
     </facet>
+    <facet type="Python" name="Python facet">
+      <configuration sdkName="Python 3.5 (pyORBSLAM2)" />
+    </facet>
+    <facet type="Python" name="Python facet">
+      <configuration sdkName="Python 3.5 (pyORBSLAM2)" />
+    </facet>
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />

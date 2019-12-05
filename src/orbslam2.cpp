@@ -64,9 +64,17 @@ class SLAMClass{
             return ret;
         }
 
-    PyObject* getmap(){
-        return cvt.toNDArray(this->slam_obj->GetMapCloud());
-    }
+        PyObject* getmap(){
+            return cvt.toNDArray(this->slam_obj->GetMapCloud());
+        }
+
+        void deactivate_mapping() {
+            this->slam_obj->ActivateLocalizationMode();
+        }
+
+        void activate_mapping() {
+            this->slam_obj->DeactivateLocalizationMode();
+        }
 
         ~SLAMClass();
 
@@ -98,5 +106,6 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
         .def("track_stereo", &SLAMClass::track_stereo)
         .def("track_mono", &SLAMClass::track_mono)
         .def("getmap", &SLAMClass::getmap)
-        ;
+        .def("deactivate_mapping", &SLAMClass::deactivate_mapping)
+        .def("activate_mapping", &SLAMClass::activate_mapping);
 }

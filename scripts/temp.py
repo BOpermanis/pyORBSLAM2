@@ -14,7 +14,7 @@ def test_SLAM_init():
     # "/slamdoom/libs/orbslam2/Examples/RGB-D/TUM1.yaml"
     print("Initializing SLAM...")
     slam_obj = os2.SLAM()
-    slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "/slamdoom/libs/orbslam2/Examples/Monocular/EuRoC.yaml", "mono", False)
+    slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "/slamdoom/libs/orbslam2/Examples/Monocular/EuRoC.yaml", "mono", True)
     print("SLAM was successfully initialized!")
     input("Press key to continue...")
     fs = sorted(glob("/home/slam_data/mav0/cam0/data/*"))
