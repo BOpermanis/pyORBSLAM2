@@ -76,6 +76,30 @@ class SLAMClass{
             this->slam_obj->DeactivateLocalizationMode();
         }
 
+        void shutdown() {
+            this->slam_obj->Shutdown();
+        }
+
+        PyObject* get_feature_kps(){
+            cv::Mat out;
+            cv::KeyPoint kp;
+            for(auto kp: this->slam_obj->GetTrackedKeyPointsUn()){
+                out.push_back(kp.pt);
+            }
+            return cvt.toNDArray(out);
+        }
+
+
+//    SYSTEM_NOT_READY=-1,
+//            NO_IMAGES_YET=0,
+//            NOT_INITIALIZED=1,
+//            OK=2,
+//            LOST=3
+
+    int tracking_state() {
+        return this->slam_obj->GetTrackingState();
+    }
+
         ~SLAMClass();
 
 
@@ -107,5 +131,8 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
         .def("track_mono", &SLAMClass::track_mono)
         .def("getmap", &SLAMClass::getmap)
         .def("deactivate_mapping", &SLAMClass::deactivate_mapping)
+        .def("shutdown", &SLAMClass::shutdown)
+        .def("tracking_state", &SLAMClass::tracking_state)
+        .def("get_feature_kps", &SLAMClass::get_feature_kps)
         .def("activate_mapping", &SLAMClass::activate_mapping);
 }
