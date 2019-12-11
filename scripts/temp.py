@@ -14,9 +14,8 @@ def test_SLAM_init():
     # "/slamdoom/libs/orbslam2/Examples/RGB-D/TUM1.yaml"
     print("Initializing SLAM...")
     slam_obj = os2.SLAM()
-    slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "/slamdoom/libs/orbslam2/Examples/Monocular/EuRoC.yaml", "mono", True)
+    slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "/slamdoom/libs/orbslam2/Examples/Monocular/EuRoC.yaml", "mono", False)
     print("SLAM was successfully initialized!")
-    input("Press key to continue...")
     fs = sorted(glob("/home/slam_data/mav0/cam0/data/*"))
     for i_frame, f in enumerate(fs):
 
@@ -41,7 +40,6 @@ def test_SLAM_init():
         pickle.dump(out, conn)
 
     print("SLAM was successfully continued!")
-    input("Press key to finish...")
     pass
 
 if __name__ == "__main__":
