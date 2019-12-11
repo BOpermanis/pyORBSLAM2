@@ -1,14 +1,13 @@
 import numpy as np
 from bresenham import bresenham
 import cv2
-from threading import Thread
-from queue import Queue
+from multiprocessing import Process, Queue
 import matplotlib.pyplot as plt
 
-def to_gridmap(pts):
+
+def to_gridmap(pts, w_occ=2.0, thresh_floor=-0.3):
     pts = np.reshape(pts, (-1, 6))
-    inds = [0, 2]
-    allpts = np.concatenate([pts[:, :3][:, inds], pts[:, 3:][:, inds]])
+    allpts = np.concatenate([pts[:, :3], pts[:, 3:]])
 
     # x = pts[:, 3:][:, 1].reshape(-1, 1)
     # # x = pts[:, :3][:, 1].reshape(-1, 1)
@@ -19,12 +18,12 @@ def to_gridmap(pts):
     n = int(allpts.shape[0] / 2)
     w = 64
     xm, xM = np.min(allpts[:, 0]), np.max(allpts[:, 0])
-    ym, yM = np.min(allpts[:, 1]), np.max(allpts[:, 1])
+    ym, yM = np.min(allpts[:, 2]), np.max(allpts[:, 2])
     dx = xM - xm
     dy = yM - ym
     h = int(w * dy / dx)
     allpts[:, 0] = w * (allpts[:, 0] - xm) / dx
-    allpts[:, 1] = h * (allpts[:, 1] - ym) / dy
+    allpts[:, 2] = h * (allpts[:, 2] - ym) / dy
     allpts = allpts.astype(np.int32)
     arr_occ = np.zeros(shape=(h + 1, w + 1), dtype=np.int32)
     arr_vis = np.zeros(shape=(h + 1, w + 1), dtype=np.int32)
@@ -33,9 +32,14 @@ def to_gridmap(pts):
     kfs = allpts[n:, :]
 
     for mp, kf in zip(mps, kfs):
-        for x, y in bresenham(mp[0], mp[1], kf[0], kf[1]):
+        for x, y in bresenham(mp[0], mp[2], kf[0], kf[2]):
+            # if arr_occ[mp[2], mp[0]] == 0:
+            #     arr_vis[y, x] += 1
             arr_vis[y, x] += 1
-        arr_occ[mp[1], mp[0]] += 1
+        # if mp[1] > 0.5:
+        #     arr_vis[mp[2], mp[0]] = 0
+        if mp[1] > thresh_floor:
+            arr_occ[mp[2], mp[0]] += w_occ
 
     d = 2
     arr_vis = cv2.blur(arr_vis, (d, d)) * (d * d)
@@ -55,6 +59,42 @@ def to_gridmap(pts):
     return cv2.resize(img, (int(img.shape[1] *r), int(img.shape[0] *r)))
 
 
+def worker_display(queue, queue_frames):
+    gridmap = np.zeros((100, 100, 3), dtype=np.uint8)
+    i = 0
+    while True:
+        i += 1
+        frame, kps, is_tracking_ok = queue_frames.get()
+        if kps is not None:
+            for kp in kps[:, 0, :].astype(np.int32):
+                if is_tracking_ok:
+                    cv2.circle(frame, tuple(kp), 4, (0, 255, 0), 5)
+                else:
+                    cv2.circle(frame, tuple(kp), 2, (0, 255, 0), 1)
+
+        h, w = frame.shape[:2]
+
+        if queue.qsize() > 0:
+            pts = queue.get()
+            gridmap = to_gridmap(pts)
+            gridmap = np.stack([gridmap]*3, axis=2)
+            h1, w1 = gridmap.shape[:2]
+            r = h1 / w1
+            r = np.clip(r, a_min=0.33, a_max=3.0)
+            h1 = h
+            w1 = int(h1 / r)
+            gridmap = cv2.resize(gridmap, (w1, h1))
+
+        if np.any(gridmap.shape[:2] != frame.shape[:2]):
+            gridmap = cv2.resize(gridmap, (frame.shape[1], frame.shape[0]))
+
+        frame1 = np.concatenate([frame, gridmap], axis=1)
+
+        cv2.imshow('gridmap', frame1)
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+
 class DisplayMap:
     def __init__(self, w=None, h=None, max_side=None):
         self.w = w
@@ -62,39 +102,12 @@ class DisplayMap:
         self.max_side = max_side
         self.queue = Queue()
         self.queue_frames = Queue()
-        thread = Thread(target=self._worker_display)
-        thread.setDaemon(True)
+        thread = Process(target=worker_display, args=((self.queue),(self.queue_frames)))
+        thread.daemon = True
         thread.start()
-
-    def _worker_display(self):
-        gridmap = np.zeros((100, 100), dtype=np.uint8)
-        i = 0
-        while True:
-            i += 1
-            frame = self.queue_frames.get()
-            self.queue_frames.task_done()
-            print(i, self.queue.qsize())
-            if self.queue.qsize() > 0:
-                gridmap = self.queue.get()
-                self.queue.task_done()
-            
-            h, w = frame.shape[:2]
-            h1, w1 = gridmap.shape[:2]
-            r = h1 / w1
-            r = np.clip(r, a_min=0.33, a_max=3.0)
-            h1 = h
-            w1 = int(h1 / r)
-            gridmap = cv2.resize(gridmap, (w1, h1))
-            if len(gridmap.shape) < 3:
-                gridmap = np.stack([gridmap]*3, axis=2)
-            frame1 = np.concatenate([frame, gridmap], axis=1)
-
-            cv2.imshow('gridmap', frame1)
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
     
-    def new_frame(self, frame):
-        self.queue_frames.put(frame)
+    def new_frame(self, frame, kps, is_tracking_ok):
+        self.queue_frames.put((frame, kps, is_tracking_ok))
     
     def new_map(self, gridmap):
         self.queue.put(gridmap)
@@ -108,7 +121,7 @@ if __name__ == "__main__":
     with open("/home/slam_data/data_sets/out.pickle", "rb") as conn:
         pts = pickle.load(conn)
 
-    img = to_gridmap(pts)
+    img = to_gridmap(pts, w_occ=2.0, thresh_floor=-0.1)
     # plt.imshow(img)
 
     # model = DisplayMap()
