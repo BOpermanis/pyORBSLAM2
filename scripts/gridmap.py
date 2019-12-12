@@ -59,6 +59,12 @@ def to_gridmap(pts, w_occ=2.0, thresh_floor=-0.3):
     return cv2.resize(img, (int(img.shape[1] *r), int(img.shape[0] *r)))
 
 
+def worker_grid(queue_pts, queue):
+    while True:
+        pts = queue_pts.get()
+        gridmap = to_gridmap(pts)
+        queue.put(gridmap)
+
 def worker_display(queue, queue_frames):
     gridmap = np.zeros((100, 100, 3), dtype=np.uint8)
     i = 0
@@ -75,8 +81,7 @@ def worker_display(queue, queue_frames):
         h, w = frame.shape[:2]
 
         if queue.qsize() > 0:
-            pts = queue.get()
-            gridmap = to_gridmap(pts)
+            gridmap = queue.get()
             gridmap = np.stack([gridmap]*3, axis=2)
             h1, w1 = gridmap.shape[:2]
             r = h1 / w1
@@ -102,15 +107,20 @@ class DisplayMap:
         self.max_side = max_side
         self.queue = Queue()
         self.queue_frames = Queue()
-        thread = Process(target=worker_display, args=((self.queue),(self.queue_frames)))
-        thread.daemon = True
-        thread.start()
+        self.queue_pts = Queue()
+        threads = [
+            Process(target=worker_display, args=((self.queue),(self.queue_frames))),
+            Process(target=worker_grid, args=((self.queue_pts),(self.queue)))
+        ]
+        for t in threads:
+            t.daemon = True
+            t.start()
     
     def new_frame(self, frame, kps, is_tracking_ok):
         self.queue_frames.put((frame, kps, is_tracking_ok))
     
-    def new_map(self, gridmap):
-        self.queue.put(gridmap)
+    def new_map(self, pts):
+        self.queue.put(pts)
 
 if __name__ == "__main__":
     # from PIL import Image
