@@ -16,7 +16,7 @@ def test_SLAM_init():
     slam_obj = os2.SLAM()
     slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "/slamdoom/tmp/orbslam2/Examples/Monocular/EuRoC.yaml", "mono", True)
     print("SLAM was successfully initialized!")
-    fs = sorted(glob("/home/slam_data/mav0/cam0/data/*"))
+    fs = sorted(glob("/home/slam_data/data_sets/mav0/cam0/data/*"))
     for i_frame, f in enumerate(fs):
 
         print("frame {} from {}".format(i_frame, len(fs)))
