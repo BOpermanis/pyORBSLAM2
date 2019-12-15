@@ -11,6 +11,6 @@ cmake -DBUILD_PYTHON3=ON \
 
 export CPATH=/usr/local/include/eigen/:/slamdoom/tmp/orbslam2:/slamdoom/libs/cppzmq:/usr/local/include/
 
-export LD_LIBRARY_PATH=/slamdoom/libs/orbslam2/Thirdparty/DBoW2/lib
+export LD_LIBRARY_PATH=/slamdoom/tmp/orbslam2/Thirdparty/DBoW2/lib
 
 make -j12 --always-make

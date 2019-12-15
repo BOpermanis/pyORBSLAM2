@@ -5,14 +5,14 @@ import sys
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
-from scripts.gridmap import to_gridmap, DisplayMap
+from gridmap import to_gridmap, DisplayMap
 
 
 def test_SLAM_init():
     # "/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt"
     # "/slamdoom/libs/orbslam2/Examples/RGB-D/TUM1.yaml"
 
-    flag_visualize_gridmap = True
+    flag_visualize_gridmap = False
     cap = cv2.VideoCapture(0)
     # ret, frame = cap.read()
     # print(frame.shape)
@@ -20,7 +20,7 @@ def test_SLAM_init():
     print("Initializing SLAM...")
     slam_obj = os2.SLAM()
     # slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", not flag_visualize_gridmap)
-    slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", True)
+    slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", True)
     print("SLAM was successfully initialized!")
     if flag_visualize_gridmap:
         displayer = DisplayMap()
