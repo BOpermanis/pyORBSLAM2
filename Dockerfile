@@ -12,32 +12,8 @@ RUN tar -xvzf ORBvoc.txt.tar.gz && ls -a
 
 RUN apt-get update && apt-get install -y python-software-properties software-properties-common &&  \
     apt-get upgrade -y && apt-get install -y gnupg && \
-    add-apt-repository ppa:x2go/stable \
-    && add-apt-repository ppa:jonathonf/python-3.6
-
-#RUN apt-get update && apt-get install -y software-properties-common &&  \
-#    apt-get upgrade -y && apt-get install -y gnupg && \
-#    add-apt-repository ppa:x2go/stable
-
+    add-apt-repository ppa:x2go/stable
 RUN apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 E1F958385BFE2B6E
-
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update
-RUN apt install g++-7 -y
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-RUN update-alternatives --config gcc
-
-RUN apt-get update \
-    && apt-get install -y python3.6 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 \
-    && apt-get install -y python3.6-dev python3-pip \
-#    && apt-get install -y libglew-dev libboost-python1.67-dev
-    && apt-get install -y libglew-dev libboost-all-dev
-
-
-
-#RUN apt-get update \
-#    && apt-get install -y python3 \
-#    && apt-get install -y python3-dev python3-pip
 
 RUN apt-get update && apt-get install -y less locales sudo zsh x2goserver
 RUN echo "deb http://packages.x2go.org/debian stretch extras main\n\
@@ -78,6 +54,9 @@ RUN apt-get update \
           libpng-dev \
           libxft-dev \
           openjdk-8-jdk \
+          python3-dev \
+          python3-pip \
+          python3 \
           swig \
           unzip \
           wget \
@@ -94,29 +73,39 @@ RUN apt-get update \
           libgtk2.0-dev \
           pkg-config
 
-
-
 # standart python libraries
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install numpy \
-    && pip3 install PyOpenGL PyOpenGL_accelerate
+RUN pip3 install --ignore-installed pip \
+    && python3 -m pip install numpy
+#    && python3 -m pip install opencv-python==3.3.1.11 \
+#    && python3 -m pip install opencv-contrib-python==3.3.1.11
 
-#COPY pangolin_setup_debugged.py /
-###COPY display_x11_debugged.cpp /
-##
-## pangolin installation
-#RUN pip3 install PyOpenGL PyOpenGL_accelerate \
-#    && git clone https://github.com/uoip/pangolin.git \
-#    && mv pangolin_setup_debugged.py /pangolin/setup.py \
-##    && mv display_x11_debugged.cpp /pangolin/src/display/device/display_x11.cpp \
-#    && cd pangolin \
-#    && mkdir build \
-#    && cd build \
-#    && cmake .. \
-#    && make -j8 \
-#    && cd .. \
-#    && python3 setup.py install \
-#    && cd / && mkdir data
+RUN apt-get install -y libboost-all-dev
+
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test && apt update
+RUN apt install g++-7 -y
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+RUN update-alternatives --config gcc
+
+RUN git clone https://github.com/BOpermanis/pyORBSLAM2.git
+
+RUN apt-get install -y libglew-dev
+
+COPY pangolin_setup_debugged.py /
+##COPY display_x11_debugged.cpp /
+#
+# pangolin installation
+RUN pip3 install PyOpenGL PyOpenGL_accelerate \
+    && git clone https://github.com/uoip/pangolin.git \
+    && mv pangolin_setup_debugged.py /pangolin/setup.py \
+#    && mv display_x11_debugged.cpp /pangolin/src/display/device/display_x11.cpp \
+    && cd pangolin \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j8 \
+    && cd .. \
+    && python3 setup.py install \
+    && cd / && mkdir data
 
 # set up directories
 RUN mkdir /slamdoom
@@ -147,12 +136,10 @@ RUN mkdir /root/.matplotlib && touch /root/.matplotlib/matplotlibrc && echo "bac
 # set up matplotlibrc file so have Qt5Agg backend by default
 RUN apt-get install -y
 
-RUN git clone https://github.com/BOpermanis/pyORBSLAM2.git
-
 #RUN cd /pyORBSLAM2/src && ./build.sh
-#
-#RUN export PYTHONPATH=/orbslam/src/build:$PYTHONPATH >> /root/.bashrc
-#
+
+RUN export PYTHONPATH=/orbslam/src/build:$PYTHONPATH >> /root/.bashrc
+
 ##### upgrading GLX #############
 RUN apt-get update
 RUN apt-get install -y --fix-missing software-properties-common && \
@@ -166,5 +153,5 @@ RUN apt-get install -y --fix-missing software-properties-common && \
 #    && meson libgl-xlib \
     && echo "export LD_LIBRARY_PATH=/mesa/build/linux-x86_64-debug/gallium/targets/libgl-xlib/:$LD_LIBRARY_PATH" >> /root/.bashrc
 
-#EXPOSE 2222
-#CMD ["/run.sh"]
+EXPOSE 2222
+CMD ["/run.sh"]
