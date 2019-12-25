@@ -43,7 +43,7 @@ while True:
 
     if flag_visualize_gridmap:
         kps = slam_obj.get_feature_kps()
-        displayer.new_frame(frame, kps, slam_obj.tracking_state() == 2)
+        # displayer.new_frame(frame, kps, slam_obj.tracking_state() == 2)
 
         if i_frame % 100 == 0:
             pts = slam_obj.getmap()
