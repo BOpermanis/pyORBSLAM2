@@ -3,12 +3,20 @@ from bresenham import bresenham
 import cv2
 from multiprocessing import Process, Queue
 # import matplotlib.pyplot as plt
+from gridmap6 import to_gridmap
 
+def to_gridmap3(pts, w_occ=2.0, thresh_floor=-0.3):
+    pts = np.reshape(pts, (-1, 7))
+    l = pts[:, 6]
+    tresh = np.percentile(l, [50])
+    inds = l > tresh
+    allpts = np.concatenate([pts[inds, :3], pts[inds, 3:6]])
 
-def to_gridmap(pts, w_occ=2.0, thresh_floor=-0.3):
-    pts = np.reshape(pts, (-1, 6))
-    allpts = np.concatenate([pts[:, :3], pts[:, 3:]])
-
+    # l = list(l)
+    # s = set(l)
+    # print(l)
+    # print("len(s), len(l)", len(s), len(l))
+    # exit()
     # x = pts[:, 3:][:, 1].reshape(-1, 1)
     # # x = pts[:, :3][:, 1].reshape(-1, 1)
     # plt.hist(x)
@@ -72,15 +80,8 @@ def worker_display(queue, queue_frames):
     i = 0
     while True:
         i += 1
-        frame, kps, is_tracking_ok = queue_frames.get()
-        if kps is not None:
-            for kp in kps[:, 0, :].astype(np.int32):
-                if is_tracking_ok:
-                    cv2.circle(frame, tuple(kp), 4, (0, 255, 0), 5)
-                else:
-                    cv2.circle(frame, tuple(kp), 2, (0, 255, 0), 1)
 
-        h, w = frame.shape[:2]
+        h, w = 700, 700
 
         if queue.qsize() > 0:
             gridmap = queue.get()
@@ -92,14 +93,9 @@ def worker_display(queue, queue_frames):
             w1 = int(h1 / r)
             gridmap = cv2.resize(gridmap, (w1, h1))
 
-        if np.any(gridmap.shape[:2] != frame.shape[:2]):
-            gridmap = cv2.resize(gridmap, (frame.shape[1], frame.shape[0]))
-
-        frame1 = np.concatenate([frame, gridmap], axis=1)
-        cv2.imshow('gridmap', frame1)
+        cv2.imshow('gridmap', gridmap)
         if cv2.waitKey(25) & 0xFF == ord('q'):
             break
-
 
 class DisplayMap:
     def __init__(self, w=None, h=None, max_side=None):

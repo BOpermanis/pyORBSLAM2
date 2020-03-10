@@ -48,5 +48,8 @@ while True:
         if i_frame % 100 == 0:
             pts = slam_obj.getmap()
             if pts is not None:
+                with open("/home/slam_data/data_sets/pts.pickle", "wb") as conn:
+                    pickle.dump(pts, conn)
+                    print("Saved !!!!!!!!!!!!!!!!!!!!!!!!!")
                 displayer.new_map(pts)
 
