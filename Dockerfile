@@ -153,5 +153,12 @@ RUN apt-get install -y --fix-missing software-properties-common && \
 #    && meson libgl-xlib \
     && echo "export LD_LIBRARY_PATH=/mesa/build/linux-x86_64-debug/gallium/targets/libgl-xlib/:$LD_LIBRARY_PATH" >> /root/.bashrc
 
+RUN apt install -y gedit
+
+RUN git clone https://github.com/IntelRealSense/librealsense.git \
+    && apt-get install -y libssl-dev libusb-1.0-0-dev libgtk-3-dev libglfw3-dev \
+    && cd librealsense && ./scripts/setup_udev_rules.sh \
+    && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
+
 EXPOSE 2222
 CMD ["/run.sh"]
