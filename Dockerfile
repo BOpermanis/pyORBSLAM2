@@ -160,5 +160,7 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git \
     && cd librealsense && ./scripts/setup_udev_rules.sh \
     && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
 
+RUN pip3 install pillow && pip3 install scipy && pip3 install sklearn && pip3 install pyrealsense2
+
 EXPOSE 2222
 CMD ["/run.sh"]
