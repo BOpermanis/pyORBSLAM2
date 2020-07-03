@@ -50,7 +50,6 @@ class SLAMClass{
             return ret;
         }
         PyObject* track_stereo(PyObject* imgl, PyObject* imgr, const double timestamp) {
-
             cv::Mat imgl_mat = cvt.toMat(imgl);
             cv::Mat imgr_mat = cvt.toMat(imgr);
             auto camera_matrix = this->slam_obj->TrackStereo(imgl_mat, imgr_mat, timestamp);
@@ -89,6 +88,21 @@ class SLAMClass{
             return cvt.toNDArray(out);
         }
 
+        void prepare_dump(){
+            slam_obj->PrepareDump();
+        }
+        PyObject* get_kf_ids_from_mps(){
+            return cvt.toNDArray(slam_obj->dump_kf_ids_from_mps());
+        }
+        PyObject* get_kf_ids(){
+            return cvt.toNDArray(slam_obj->dump_kf_ids());
+        }
+        PyObject* get_mp_3dpts(){
+            return cvt.toNDArray(slam_obj->dump_mp_3dpts());
+        }
+        PyObject* get_kf_3dpts(){
+            return cvt.toNDArray(slam_obj->dump_kf_3dpts());
+        }
 
 //    SYSTEM_NOT_READY=-1,
 //            NO_IMAGES_YET=0,
@@ -134,5 +148,10 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
         .def("shutdown", &SLAMClass::shutdown)
         .def("tracking_state", &SLAMClass::tracking_state)
         .def("get_feature_kps", &SLAMClass::get_feature_kps)
+        .def("prepare_dump", &SLAMClass::prepare_dump)
+        .def("get_kf_ids_from_mps", &SLAMClass::get_kf_ids_from_mps)
+        .def("get_kf_ids", &SLAMClass::get_kf_ids)
+        .def("get_mp_3dpts", &SLAMClass::get_mp_3dpts)
+        .def("get_kf_3dpts", &SLAMClass::get_kf_3dpts)
         .def("activate_mapping", &SLAMClass::activate_mapping);
 }

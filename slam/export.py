@@ -1,13 +1,12 @@
 import cv2
 import sys
 import numpy as np
+import pickle
 
 sys.path.insert(0, "/pyORBSLAM2/src/build")
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
-from gridmap import to_gridmap, DisplayMap
-
 import pyrealsense2 as rs
 
 # Configure depth and color streams
@@ -43,16 +42,15 @@ while True:
     frame = np.asanyarray(color_frame.get_data())
 
     slam_obj.track_rgbd(frame, depth_image, time())
+    sleep(0.2)
+    if i_frame > 30:
+        slam_obj.prepare_dump()
+        kf_ids_from_mps = slam_obj.get_kf_ids_from_mps()
+        kf_ids = slam_obj.get_kf_ids()
+        mp_3dpts = slam_obj.get_mp_3dpts()
+        kf_3dpts = slam_obj.get_kf_3dpts()
+        with open("/home/slam_data/data_sets1/temp.pickle", 'wb') as conn:
+            pickle.dump((kf_ids_from_mps, kf_ids, mp_3dpts, kf_3dpts), conn)
+        break
 
-    if flag_visualize_gridmap:
-        kps = slam_obj.get_feature_kps()
-        # displayer.new_frame(frame, kps, slam_obj.tracking_state() == 2)
-
-        if i_frame % 100 == 0:
-            pts = slam_obj.getmap()
-            if pts is not None:
-                with open("/home/slam_data/data_sets/pts.pickle", "wb") as conn:
-                    pickle.dump(pts, conn)
-                    print("Saved !!!!!!!!!!!!!!!!!!!!!!!!!")
-                displayer.new_map(pts)
-
+del slam_obj
