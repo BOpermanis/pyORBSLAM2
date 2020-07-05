@@ -49,6 +49,13 @@ class SLAMClass{
             PyObject* ret = cvt.toNDArray(camera_matrix);
             return ret;
         }
+
+        PyObject* visualize_cape(PyObject* rgb_img, PyObject* d_img){
+            cv::Mat rgb_img_mat = cvt.toMat(rgb_img);
+            cv::Mat d_img_mat = cvt.toMat(d_img);
+            return cvt.toNDArray(this->slam_obj->VisualizeCape(rgb_img_mat, d_img_mat));;
+        }
+
         PyObject* track_stereo(PyObject* imgl, PyObject* imgr, const double timestamp) {
             cv::Mat imgl_mat = cvt.toMat(imgl);
             cv::Mat imgr_mat = cvt.toMat(imgr);
@@ -104,6 +111,18 @@ class SLAMClass{
             return cvt.toNDArray(slam_obj->dump_kf_3dpts());
         }
 
+        PyObject* get_kf_ids_from_planes(){
+            return cvt.toNDArray(slam_obj->dump_kf_ids_from_planes());
+        }
+        PyObject* get_plane_params(){
+            return cvt.toNDArray(slam_obj->dump_plane_params());
+        }
+        PyObject* get_frame_ids(){
+            return cvt.toNDArray(slam_obj->dump_frame_ids());
+        }
+        PyObject* get_plane_segs(){
+            return cvt.toNDArray(slam_obj->dump_plane_segs());
+        }
 //    SYSTEM_NOT_READY=-1,
 //            NO_IMAGES_YET=0,
 //            NOT_INITIALIZED=1,
@@ -153,5 +172,10 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
         .def("get_kf_ids", &SLAMClass::get_kf_ids)
         .def("get_mp_3dpts", &SLAMClass::get_mp_3dpts)
         .def("get_kf_3dpts", &SLAMClass::get_kf_3dpts)
+        .def("visualize_cape", &SLAMClass::visualize_cape)
+        .def("get_kf_ids_from_planes", &SLAMClass::get_kf_ids_from_planes)
+        .def("get_plane_params", &SLAMClass::get_plane_params)
+        .def("get_frame_ids", &SLAMClass::get_frame_ids)
+        .def("get_plane_segs", &SLAMClass::get_plane_segs)
         .def("activate_mapping", &SLAMClass::activate_mapping);
 }
