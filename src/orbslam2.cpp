@@ -123,6 +123,9 @@ class SLAMClass{
         PyObject* get_plane_segs(){
             return cvt.toNDArray(slam_obj->dump_plane_segs());
         }
+        PyObject* get_kf_clouds(){
+            return cvt.toNDArray(slam_obj->dump_kf_clouds());
+        }
 //    SYSTEM_NOT_READY=-1,
 //            NO_IMAGES_YET=0,
 //            NOT_INITIALIZED=1,
@@ -177,5 +180,6 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
         .def("get_plane_params", &SLAMClass::get_plane_params)
         .def("get_frame_ids", &SLAMClass::get_frame_ids)
         .def("get_plane_segs", &SLAMClass::get_plane_segs)
+        .def("get_kf_clouds", &SLAMClass::get_kf_clouds)
         .def("activate_mapping", &SLAMClass::activate_mapping);
 }

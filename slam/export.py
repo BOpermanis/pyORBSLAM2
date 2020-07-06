@@ -10,6 +10,9 @@ from time import time, sleep
 import pickle
 import pyrealsense2 as rs
 
+
+# def export_stuff()
+
 # Configure depth and color streams
 pipeline = rs.pipeline()
 config = rs.config()
@@ -31,7 +34,6 @@ print("SLAM was successfully initialized!")
 
 
 i_frame = 0
-depth_images = []
 while True:
     i_frame += 1
 
@@ -46,7 +48,6 @@ while True:
     frame = np.asanyarray(color_frame.get_data())
 
     slam_obj.track_rgbd(frame, depth_image, time())
-    depth_images.append(depth_image)
     sleep(0.2)
     if i_frame > 50:
         slam_obj.prepare_dump()
@@ -58,12 +59,13 @@ while True:
         plane_params = slam_obj.get_plane_params()
         frame_ids = slam_obj.get_frame_ids()
         plane_segs = slam_obj.get_plane_segs()
+        kf_clouds = slam_obj.get_kf_clouds()
 
         print("plane_params.shape[0] / 4", plane_params.shape[0] / 4)
         with open("/home/slam_data/data_sets1/temp.pickle", 'wb') as conn:
             s = set(frame_ids.flatten())
-            depth_images = [convert_depth_frame_to_pointcloud(a, intr, flag_drop_zero_depth=False) for i, a in enumerate(depth_images) if i in s]
-            pickle.dump((kf_ids_from_mps, kf_ids, mp_3dpts, kf_3dpts, kf_ids_from_planes, plane_params, frame_ids, depth_images, plane_segs), conn)
+            # depth_images = [convert_depth_frame_to_pointcloud(a, intr, flag_drop_zero_depth=False) for i, a in enumerate(depth_images) if i in s]
+            pickle.dump((kf_ids_from_mps, kf_ids, mp_3dpts, kf_3dpts, kf_ids_from_planes, plane_params, frame_ids, kf_clouds, plane_segs), conn)
         print(11111111111111111111111)
         break
 
