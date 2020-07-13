@@ -14,7 +14,7 @@ for d, ds, fs in walker:
         #if '#include "../../config.h"' in lns:
         if '#include "../../Config.h"' in lns:
             print(d + "/" + f)
-            lns = lns.replace('#include "../../Config.h"', '//#include "../../Config.h"')
+            lns = lns.replace('#include "../../config.h"', '//#include "Config.h"')
             with open(d + "/" + f, 'w') as conn:
                 conn.write(lns)
         # print(type(lns))
