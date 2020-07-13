@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(ORBSLAM2)
 
+find_package( PCL 1.8 REQUIRED)
+
 # Project version
 #-----------------------------------------------------------------------------------------------------------------------
 set(ORBSLAM2_MAJOR_VERSION 1)
@@ -83,7 +85,7 @@ set(ORBSLAM2_LIB_SRC_DIR ${ORBSLAM2_SRC_DIR})
 set(ORBSLAM2_LIB_INCLUDE_DIR ${ORBSLAM2_INCLUDE_DIR} ${ORBSLAM2_LIB_SRC_DIR})
 set(ORBSLAM2_OUTPUT_NAME ORBSLAM2)
 
-include_directories(${ORBSLAM2_LIB_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+include_directories(${ORBSLAM2_LIB_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
 
 set(ORBSLAM2_LIBS
         ${Boost_LIBRARIES}

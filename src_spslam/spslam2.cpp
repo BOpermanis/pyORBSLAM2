@@ -45,6 +45,7 @@ class SLAMClass{
         PyObject* track_rgbd(PyObject* rgb_img, PyObject* d_img, const double timestamp){
             cv::Mat rgb_img_mat = cvt.toMat(rgb_img);
             cv::Mat d_img_mat = cvt.toMat(d_img);
+            cout << 2222222222 << endl;
             auto camera_matrix = this->slam_obj->TrackRGBD(rgb_img_mat, d_img_mat, timestamp);
             PyObject* ret = cvt.toNDArray(camera_matrix);
             return ret;
