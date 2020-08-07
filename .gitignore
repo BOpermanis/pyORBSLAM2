@@ -30,11 +30,19 @@
 
 .idea
 
-/src/bin/*
-/src/build/*
-/src/CMakeFiles/*
+src_spslam/bin/*
+src_spslam/build/*
+src_spslam/CMakeFiles/*
 
-/src/cmake_install.cmake
-/src/CMakeCache.txt
-/src/Makefile
+src_spslam/cmake_install.cmake
+src_spslam/CMakeCache.txt
+src_spslam/Makefile
+
+src/bin/*
+src/build/*
+src/CMakeFiles/*
+
+src/cmake_install.cmake
+src/CMakeCache.txt
+src/Makefile
 /.idea/

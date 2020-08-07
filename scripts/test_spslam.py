@@ -2,11 +2,10 @@ import cv2
 import sys
 import numpy as np
 
-sys.path.insert(0, "/pyORBSLAM2/src/build")
+sys.path.insert(0, "/pyORBSLAM2/src_spslam/build")
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
-from gridmap import to_gridmap, DisplayMap
 
 import pyrealsense2 as rs
 
@@ -24,10 +23,9 @@ flag_visualize_gridmap = False
 print("Initializing SLAM...")
 slam_obj = os2.SLAM()
 # slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", not flag_visualize_gridmap)
-slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", True)
+slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", False)
 print("SLAM was successfully initialized!")
-if flag_visualize_gridmap:
-    displayer = DisplayMap()
+
 i_frame = 0
 while True:
     i_frame += 1
@@ -39,20 +37,9 @@ while True:
     if not depth_frame or not color_frame:
         continue
 
-    depth_image = np.asanyarray(depth_frame.get_data())
-    frame = np.asanyarray(color_frame.get_data())
+    depth_image = np.asanyarray(depth_frame.get_data()).copy()
+    frame = np.asanyarray(color_frame.get_data()).copy()
 
+    print(11111111111111111)
     slam_obj.track_rgbd(frame, depth_image, time())
-
-    if flag_visualize_gridmap:
-        kps = slam_obj.get_feature_kps()
-        # displayer.new_frame(frame, kps, slam_obj.tracking_state() == 2)
-
-        if i_frame % 100 == 0:
-            pts = slam_obj.getmap()
-            if pts is not None:
-                with open("/home/slam_data/data_sets/pts.pickle", "wb") as conn:
-                    pickle.dump(pts, conn)
-                    print("Saved !!!!!!!!!!!!!!!!!!!!!!!!!")
-                displayer.new_map(pts)
 

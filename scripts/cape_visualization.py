@@ -1,14 +1,15 @@
 import cv2
 import sys
 import numpy as np
+import pickle
 
 sys.path.insert(0, "/pyORBSLAM2/src/build")
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
-from gridmap import to_gridmap, DisplayMap
-
 import pyrealsense2 as rs
+
+from PIL import Image
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -24,10 +25,18 @@ flag_visualize_gridmap = False
 print("Initializing SLAM...")
 slam_obj = os2.SLAM()
 # slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", not flag_visualize_gridmap)
-slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", True)
+slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", False)
 print("SLAM was successfully initialized!")
-if flag_visualize_gridmap:
-    displayer = DisplayMap()
+
+
+def get_id_color(i):
+    np.random.seed(i)
+    return np.asarray([
+        np.random.randint(0, 255, dtype=np.uint8),
+        np.random.randint(0, 255, dtype=np.uint8),
+        np.random.randint(0, 255, dtype=np.uint8)
+    ])
+
 i_frame = 0
 while True:
     i_frame += 1
@@ -42,17 +51,24 @@ while True:
     depth_image = np.asanyarray(depth_frame.get_data())
     frame = np.asanyarray(color_frame.get_data())
 
-    slam_obj.track_rgbd(frame, depth_image, time())
+    x = slam_obj.visualize_cape(frame, depth_image.astype(np.float32))
+    for i in np.unique(x):
+        if i!=0:
+            mask1 = x == i
+            color = get_id_color(i)
+            # print(color.shape, frame.shape)
+            frame[mask1, :] = (frame[mask1, :] + color) // 2
+            # print(frame.shape, frame.dtype)
+            # exit()
 
-    if flag_visualize_gridmap:
-        kps = slam_obj.get_feature_kps()
-        # displayer.new_frame(frame, kps, slam_obj.tracking_state() == 2)
+    print("len(np.unique(x))", len(np.unique(x)))
+    cv2.imshow('frame', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    # print(x.shape, x.dtype)
+    # print(np.unique(x))
+    # # Image.fromarray(frame).show()
+    # break
 
-        if i_frame % 100 == 0:
-            pts = slam_obj.getmap()
-            if pts is not None:
-                with open("/home/slam_data/data_sets/pts.pickle", "wb") as conn:
-                    pickle.dump(pts, conn)
-                    print("Saved !!!!!!!!!!!!!!!!!!!!!!!!!")
-                displayer.new_map(pts)
 
+del slam_obj

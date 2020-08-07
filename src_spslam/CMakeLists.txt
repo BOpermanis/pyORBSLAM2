@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(ORBSLAM2)
 
-find_package( PCL 1.8 REQUIRED)
-
 # Project version
 #-----------------------------------------------------------------------------------------------------------------------
 set(ORBSLAM2_MAJOR_VERSION 1)
@@ -23,6 +21,8 @@ option(BUILD_PYTHON3 "Build ORBSLAM2 Python3 binding instead of default Python2.
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wall  -O3 -march=native")
+
+find_package( PCL 1.7 REQUIRED)
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -213,7 +213,7 @@ if (BUILD_PYTHON3)
     set(ORBSLAM2_PYTHON_SOURCES
 #            ${ORBSLAM2_PYTHON_SRC_DIR}/ORBSLAM2GamePython.h
 #            ${ORBSLAM2_PYTHON_SRC_DIR}/ORBSLAM2GamePython.cpp
-            ${ORBSLAM2_PYTHON_SRC_DIR}/orbslam2.cpp
+            ${ORBSLAM2_PYTHON_SRC_DIR}/spslam2.cpp
             ${ORBSLAM2_PYTHON_SRC_DIR}/lib/conversion.cpp)
 
     if (WIN32)
