@@ -6,6 +6,7 @@ sys.path.insert(0, "/pyORBSLAM2/src_spslam/build")
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
+from slam.utils import DisplayMap
 
 import pyrealsense2 as rs
 
@@ -26,6 +27,8 @@ slam = os2.SLAM()
 slam.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "/SP-SLAM/Examples/RGB-D/realsense.yaml", "rgbd", True)
 print("SLAM was successfully initialized!")
 
+displayer = DisplayMap()
+
 i_frame = 0
 while True:
     i_frame += 1
@@ -41,6 +44,10 @@ while True:
     frame = np.asanyarray(color_frame.get_data()).copy()
 
     slam.track_rgbd(frame, depth_image, time())
+
+    if i_frame % 10 == 0 and displayer.queue_pts.qsize() == 0:
+        self.queue_pts.put(pts)
+
     if i_frame > 100:
         slam.prepare_dump()
         kf_ids_from_mps = slam.get_kf_ids_from_mps()

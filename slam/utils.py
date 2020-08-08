@@ -1,40 +1,127 @@
-import numpy as np
 import cv2
 from bresenham import bresenham
 # from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+from multiprocessing import Process
+from queue import Queue
+from collections import Counter
 
-# # Let's load a simple image with 3 black squares
-# image = cv2.imread('/home/slam_data/data_sets/rgbd_dataset_freiburg1_xyz/rgb/1305031102.175304.png')
-# cv2.waitKey(0)
-#
-# # Grayscale
-# gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#
-# # Find Canny edges
-# edged = cv2.Canny(gray, 30, 200)
-# cv2.waitKey(0)
-#
-# # Finding Contours
-# # Use a copy of the image e.g. edged.copy()
-# # since findContours alters the image
-# _, contours, hierarchy = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-# # plt.imshow(edged)
-# # plt.show()
-# print([c.shape for c in contours])
-# # cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
-# # plt.imshow(image)
-# # plt.show()
-# exit()
-#
-#
-# cv2.imshow('Canny Edges After Contouring', edged)
-# cv2.waitKey(0)
-# exit()
 w_occ = 2.0
 thresh_floor = -0.3
+
+def average_plane_gridmap(xs, updates):
+
+    mx, Mx = np.min(xs[:, 0]), np.max(xs[:, 0])
+    my, My = np.min(xs[:, 1]), np.max(xs[:, 1])
+
+    width = 500
+    height = 500
+
+    xs[:, 0] = width * (xs[:, 0] - mx) / (Mx - mx)
+    xs[:, 1] = width * (xs[:, 1] - my) / (My - my)
+
+    a = 0
+    imgs = []
+    for b in np.cumsum(updates):
+        xs1 = xs[a:b, :]
+        # print(xs1.shape, a, b)
+        xs1 = np.concatenate([xs1, xs1[:1, :]]).astype(int)
+
+        img = np.zeros(shape=(height, width))
+        cv2.drawContours(img, [np.expand_dims(xs1, 1)], -1, 1, -1)
+        imgs.append(img)
+        a = b
+
+    img = np.sum(np.stack(imgs), axis=0) > 3
+    return (img * 255).astype(np.uint8)
+    # plt.imshow(img)
+    # plt.show()
+
+
+def projectPtsOnPlane(xs1, coef):
+    # finding vector on a plane
+    v = - coef[3] / np.sum(np.square(coef[:3]))
+    vec = v * coef[:3]
+
+    # compute dists from point to plane
+    vecs = np.stack([vec] * xs1.shape[0])
+    dists = np.apply_along_axis(lambda x: np.dot(x, coef[:3]), 1, vecs - xs1)
+
+    # using direction of plane normal find projection
+    ns = np.stack([coef[:3]] * xs1.shape[0])
+    return xs1 + (ns.T * dists).T
+
+
+def worker_grid(queue_pts, queue):
+    while True:
+        plane_ids, plane_params, boundary_pts, plane_ids_from_boundary_pts, boundary_updates = queue_pts.get()
+        ii = Counter(plane_ids_from_boundary_pts).most_common(1)[0][0]
+
+        xs = boundary_pts[plane_ids_from_boundary_pts == ii, :]
+        updates = boundary_updates[boundary_updates[:, 0] == ii, 1]
+        coef = plane_params[plane_ids == ii][0]
+        xs = projectPtsOnPlane(xs, coef)
+        gridmap = average_plane_gridmap(xs, updates)
+        queue.put(gridmap)
+
+
+def worker_display(queue, queue_frames):
+    gridmap = np.zeros((100, 100, 3), dtype=np.uint8)
+    i = 0
+    while True:
+        i += 1
+
+        h, w = 500, 500
+
+        if queue.qsize() > 0:
+            gridmap = queue.get()
+            gridmap = np.stack([gridmap] * 3, axis=2)
+            h1, w1 = gridmap.shape[:2]
+            r = h1 / w1
+            r = np.clip(r, a_min=0.33, a_max=3.0)
+            h1 = h
+            w1 = int(h1 / r)
+            gridmap = cv2.resize(gridmap, (w1, h1))
+
+        cv2.imshow('gridmap', gridmap)
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+
+class DisplayMap:
+    def __init__(self, w=None, h=None, max_side=None):
+        self.w = w
+        self.h = h
+        self.max_side = max_side
+        self.queue = Queue(maxsize=20)
+        self.queue_frames = Queue(maxsize=20)
+        self.queue_pts = Queue(maxsize=20)
+
+        threads = [
+            Process(target=worker_display, args=(self.queue, self.queue_frames)),
+            Process(target=worker_grid, args=(self.queue_pts, self.queue))
+        ]
+        for t in threads:
+            t.daemon = True
+            t.start()
+
+    def add_data(self, slam):
+        slam.prepare_dump()
+        plane_ids = slam.get_plane_ids()
+        plane_ids_from_boundary_pts = slam.get_plane_ids_from_boundary_pts()
+        plane_params = slam.get_plane_params()
+        boundary_pts = slam.get_boundary_pts()
+        boundary_updates = slam.get_boundary_update_sizes()
+        plane_ids = plane_ids[:, 0]
+        plane_params = plane_params.reshape((-1, 4))
+        boundary_pts = boundary_pts[:, 0, :]
+        plane_ids_from_boundary_pts = plane_ids_from_boundary_pts[:, 0]
+        boundary_updates = boundary_updates[:, 0, :]
+        self.queue_pts.put((
+            plane_ids, plane_params, boundary_pts, plane_ids_from_boundary_pts, boundary_updates
+        ))
 
 
 def convert_depth_frame_to_pointcloud(depth_image, intr, flag_drop_zero_depth=True):
@@ -77,38 +164,6 @@ def visualize2d(x1s, x2s, y1s, y2s):
 
     plt.imshow(img)
     plt.show()
-
-
-def average_plane_gridmap(xs, updates):
-
-    mx, Mx = np.min(xs[:, 0]), np.max(xs[:, 0])
-    my, My = np.min(xs[:, 1]), np.max(xs[:, 1])
-
-    width = 500
-    height = 500
-
-    xs[:, 0] = width * (xs[:, 0] - mx) / (Mx - mx)
-    xs[:, 1] = width * (xs[:, 1] - my) / (My - my)
-
-    a = 0
-    imgs = []
-    for b in np.cumsum(updates):
-        xs1 = xs[a:b, :]
-        # print(xs1.shape, a, b)
-        xs1 = np.concatenate([xs1, xs1[:1, :]]).astype(int)
-
-        img = np.zeros(shape=(height, width))
-        cv2.drawContours(img, [np.expand_dims(xs1, 1)], -1, 1, -1)
-        imgs.append(img)
-        a = b
-
-    img = np.sum(np.stack(imgs), axis=0)
-    plt.imshow(img)
-    plt.show()
-    print(img.shape)
-    exit()
-
-
 
 def visualizeCountour(xs, ys):
     import matplotlib.pyplot as plt
