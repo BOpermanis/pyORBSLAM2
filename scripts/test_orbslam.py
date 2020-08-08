@@ -19,7 +19,7 @@ pipeline.start(config)
 
 print("Initializing SLAM...")
 slam_obj = os2.SLAM()
-slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", False)
+slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", True)
 print("SLAM was successfully initialized!")
 
 i_frame = 0

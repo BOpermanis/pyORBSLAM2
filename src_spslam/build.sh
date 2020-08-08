@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cmake -DBUILD_PYTHON3=ON \
-      -DCMAKE_MODULE_PATH=/usr/local/include/eigen/cmake \
+      -DCMAKE_MODULE_PATH=/eigen-3.3.7/cmake \
       -DZMQ_INCLUDE_DIR=/usr/local/include \
       -DZMQ_LIBRARY=/usr/local/lib/libzmq.so \
       -DORBSLAM2_LIBRARY=/SP-SLAM/lib/libORB_SLAM2.so \
@@ -9,8 +9,8 @@ cmake -DBUILD_PYTHON3=ON \
       -DDBoW2_LIBRARY=/SP-SLAM/Thirdparty/DBoW2/lib/libDBoW2.so \
       -DCMAKE_BUILD_TYPE=Release .
 
-export CPATH=/usr/local/include/eigen/:/SP-SLAM:/slamdoom/libs/cppzmq:/usr/local/include/
+export CPATH=/eigen-3.3.7/:/SP-SLAM:/slamdoom/libs/cppzmq:/usr/local/include/
 
-export LD_LIBRARY_PATH=/SP-SLAM/Thirdparty/DBoW2/lib
+#export LD_LIBRARY_PATH=/SP-SLAM/Thirdparty/DBoW2/lib
 
-make -j2 --always-make
+make -j2 #--always-make

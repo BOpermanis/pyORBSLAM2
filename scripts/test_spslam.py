@@ -21,9 +21,9 @@ flag_visualize_gridmap = False
 # print(frame.shape)
 # exit()
 print("Initializing SLAM...")
-slam_obj = os2.SLAM()
+slam = os2.SLAM()
 # slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", not flag_visualize_gridmap)
-slam_obj.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "../realsense.yaml", "rgbd", False)
+slam.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "/SP-SLAM/Examples/RGB-D/realsense.yaml", "rgbd", True)
 print("SLAM was successfully initialized!")
 
 i_frame = 0
@@ -40,6 +40,21 @@ while True:
     depth_image = np.asanyarray(depth_frame.get_data()).copy()
     frame = np.asanyarray(color_frame.get_data()).copy()
 
-    print(11111111111111111)
-    slam_obj.track_rgbd(frame, depth_image, time())
+    slam.track_rgbd(frame, depth_image, time())
+    if i_frame > 100:
+        slam.prepare_dump()
+        kf_ids_from_mps = slam.get_kf_ids_from_mps()
+        kf_ids = slam.get_kf_ids()
+        plane_ids = slam.get_plane_ids()
+        mp_3dpts = slam.get_mp_3dpts()
+        kf_3dpts = slam.get_kf_3dpts()
+        plane_ids_from_boundary_pts = slam.get_plane_ids_from_boundary_pts()
+        plane_params = slam.get_plane_params()
+        boundary_pts = slam.get_boundary_pts()
+        boundary_updates = slam.get_boundary_update_sizes()
+        with open("/home/slam_data/data_sets/spspalm_map.pickle", 'wb') as conn:
+            pickle.dump((kf_ids_from_mps, kf_ids, plane_ids, mp_3dpts, kf_3dpts, plane_ids_from_boundary_pts, plane_params, boundary_pts, boundary_updates), conn)
+        break
+
+del slam
 
