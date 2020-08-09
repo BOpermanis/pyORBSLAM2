@@ -3,6 +3,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, "/pyORBSLAM2/src_spslam/build")
+sys.path.insert(0, "/pyORBSLAM2")
 import ORBSLAM2 as os2
 from time import time, sleep
 import pickle
@@ -24,7 +25,7 @@ flag_visualize_gridmap = False
 print("Initializing SLAM...")
 slam = os2.SLAM()
 # slam_obj.init("/slamdoom/libs/orbslam2/Vocabulary/ORBvoc.txt", "../logitec.yaml", "mono", not flag_visualize_gridmap)
-slam.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "/SP-SLAM/Examples/RGB-D/realsense.yaml", "rgbd", True)
+slam.init("/slamdoom/tmp/orbslam2/Vocabulary/ORBvoc.txt", "/SP-SLAM/Examples/RGB-D/realsense.yaml", "rgbd", False)
 print("SLAM was successfully initialized!")
 
 displayer = DisplayMap()
@@ -44,24 +45,25 @@ while True:
     frame = np.asanyarray(color_frame.get_data()).copy()
 
     slam.track_rgbd(frame, depth_image, time())
-
+    # print("displayer.queue_pts.qsize()", displayer.queue_pts.qsize())
     if i_frame % 10 == 0 and displayer.queue_pts.qsize() == 0:
-        self.queue_pts.put(pts)
+        print("{} ) {}".format(i_frame, displayer.queue_pts.qsize()))
+        displayer.add_data(slam)
 
-    if i_frame > 100:
-        slam.prepare_dump()
-        kf_ids_from_mps = slam.get_kf_ids_from_mps()
-        kf_ids = slam.get_kf_ids()
-        plane_ids = slam.get_plane_ids()
-        mp_3dpts = slam.get_mp_3dpts()
-        kf_3dpts = slam.get_kf_3dpts()
-        plane_ids_from_boundary_pts = slam.get_plane_ids_from_boundary_pts()
-        plane_params = slam.get_plane_params()
-        boundary_pts = slam.get_boundary_pts()
-        boundary_updates = slam.get_boundary_update_sizes()
-        with open("/home/slam_data/data_sets/spspalm_map.pickle", 'wb') as conn:
-            pickle.dump((kf_ids_from_mps, kf_ids, plane_ids, mp_3dpts, kf_3dpts, plane_ids_from_boundary_pts, plane_params, boundary_pts, boundary_updates), conn)
-        break
+        # if i_frame > 100:
+        #     slam.prepare_dump()
+        #     kf_ids_from_mps = slam.get_kf_ids_from_mps()
+        #     kf_ids = slam.get_kf_ids()
+        #     plane_ids = slam.get_plane_ids()
+        #     mp_3dpts = slam.get_mp_3dpts()
+        #     kf_3dpts = slam.get_kf_3dpts()
+        #     plane_ids_from_boundary_pts = slam.get_plane_ids_from_boundary_pts()
+        #     plane_params = slam.get_plane_params()
+        #     boundary_pts = slam.get_boundary_pts()
+        #     boundary_updates = slam.get_boundary_update_sizes()
+        #     with open("/home/slam_data/data_sets/spspalm_map.pickle", 'wb') as conn:
+        #         pickle.dump((kf_ids_from_mps, kf_ids, plane_ids, mp_3dpts, kf_3dpts, plane_ids_from_boundary_pts, plane_params, boundary_pts, boundary_updates), conn)
+        #     break
 
 del slam
 

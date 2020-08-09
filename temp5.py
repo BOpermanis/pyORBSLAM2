@@ -19,6 +19,12 @@ boundary_updates = boundary_updates[:, 0, :]
 #         print(a)
 #     a1 = a
 #
+print(plane_params.shape, plane_ids)
+print(plane_params[:, 3])
+
+
+
+
 print()
 # exit()
 
