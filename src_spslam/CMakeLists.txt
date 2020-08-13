@@ -215,7 +215,8 @@ if (BUILD_PYTHON3)
             ${Boost_INCLUDE_DIR}
             ${PYTHON_INCLUDE_DIRS}
             ${NUMPY_INCLUDES}
-            ${Pangolin_INCLUDE_DIRS})
+            ${Pangolin_INCLUDE_DIRS}
+            /SP-SLAM/grid_map_core/include)
 
     set(ORBSLAM2_PYTHON_SOURCES
 #            ${ORBSLAM2_PYTHON_SRC_DIR}/ORBSLAM2GamePython.h

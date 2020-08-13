@@ -88,6 +88,11 @@ class SLAMClass{
             return cvt.toNDArray(slam_obj->dump_cntBoundaryUpdateSizes());
         }
 
+        PyObject* get_grid_map(){
+            return cvt.toNDArray(slam_obj->get_gridmaps());
+        }
+
+
         ~SLAMClass();
 
 
@@ -124,8 +129,8 @@ BOOST_PYTHON_MODULE(ORBSLAM2)
 .def("get_plane_ids_from_boundary_pts", &SLAMClass::get_plane_ids_from_boundary_pts)
 .def("get_plane_params", &SLAMClass::get_plane_params)
 .def("get_boundary_pts", &SLAMClass::get_boundary_pts)
-.def("get_boundary_update_sizes", &SLAMClass::get_boundary_update_sizes);
-
+.def("get_boundary_update_sizes", &SLAMClass::get_boundary_update_sizes)
+.def("get_grid_map", &SLAMClass::get_grid_map);
 //    cv::Mat kf_ids_from_mps;
 //    cv::Mat kf_ids;
 //    cv::Mat plane_ids;

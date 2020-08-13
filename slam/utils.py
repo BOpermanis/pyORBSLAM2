@@ -55,35 +55,15 @@ def projectPtsOnPlane(xs1, coef):
     return xs1 + (ns.T * dists).T
 
 
-def worker_grid(queue_pts, queue):
-    # from sklearn.decomposition import PCA
-    # pca = PCA(n_components=2)
-    while True:
-
-        # print(111111111111111111)
-        plane_ids, plane_params, boundary_pts, plane_ids_from_boundary_pts, boundary_updates = queue_pts.get()
-        # print(222222222222222222)
-        if boundary_updates.shape[0] > 10:
-            ii = set(plane_ids[np.abs(np.dot(plane_params[:, :3], np.asarray([0.0, 1.0, 0.0]))) > 0.8])
-            ii = Counter([a for a in plane_ids_from_boundary_pts if a in ii]).most_common(1)[0][0]
-            xs = boundary_pts[plane_ids_from_boundary_pts == ii, :]
-            updates = boundary_updates[boundary_updates[:, 0] == ii, 1]
-            coef = plane_params[plane_ids == ii][0]
-            xs = projectPtsOnPlane(xs, coef)
-            # xs = pca.fit_transform(xs).astype(int)
-            xs = xs[:, (0, 2)]
-            gridmap = average_plane_gridmap(xs, updates)
-            queue.put(gridmap)
-
-
-
 def worker_display(queue):
     i = 0
     while True:
         i += 1
         h, w = 500, 500
         gridmap = queue.get()
+        print("girdmap shape ", np.sum(gridmap > 0) / np.prod(gridmap.shape))
         gridmap = np.stack([gridmap] * 3, axis=2)
+        gridmap = np.clip(gridmap, a_min=0, a_max=255)
         h1, w1 = gridmap.shape[:2]
         r = h1 / w1
         r = np.clip(r, a_min=0.33, a_max=3.0)
@@ -106,8 +86,7 @@ class DisplayMap:
         self.queue_pts = Queue(maxsize=20)
 
         threads = [
-            Process(target=worker_display, args=(self.queue, )),
-            Process(target=worker_grid, args=(self.queue_pts, self.queue))
+            Process(target=worker_display, args=(self.queue_pts, )),
         ]
 
         for t in threads:
@@ -115,22 +94,9 @@ class DisplayMap:
             t.start()
 
     def add_data(self, slam):
-        slam.prepare_dump()
-        plane_ids = slam.get_plane_ids()
-        plane_ids_from_boundary_pts = slam.get_plane_ids_from_boundary_pts()
-        plane_params = slam.get_plane_params()
-        boundary_pts = slam.get_boundary_pts()
-        boundary_updates = slam.get_boundary_update_sizes()
-
-        plane_ids = plane_ids[:, 0]
-        plane_params = plane_params.reshape((-1, 4))
-        boundary_pts = boundary_pts[:, 0, :]
-        plane_ids_from_boundary_pts = plane_ids_from_boundary_pts[:, 0]
-        boundary_updates = boundary_updates[:, 0, :]
-
-        self.queue_pts.put((
-            plane_ids, plane_params, boundary_pts, plane_ids_from_boundary_pts, boundary_updates
-        ))
+        gridmap = slam.get_grid_map()
+        print(gridmap.shape, gridmap.dtype, np.min(gridmap), np.max(gridmap))
+        self.queue_pts.put(gridmap)
 
 
 def convert_depth_frame_to_pointcloud(depth_image, intr, flag_drop_zero_depth=True):
