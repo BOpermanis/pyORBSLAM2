@@ -37,9 +37,12 @@ RUN mkdir -p /var/run/sshd
 
 RUN chmod +x /*.sh
 
+RUN apt install -y libpcl-dev
+
 # install packages
 RUN apt-get update -y && apt-get upgrade -y && \
     apt-get install -y xfce4 epiphany
+
 
 RUN apt-get update \
     && apt-get install -y \
@@ -74,7 +77,7 @@ RUN apt-get update \
           pkg-config
 
 # standart python libraries
-RUN pip3 install --ignore-installed pip \
+RUN pip3 install pip==19 \
     && python3 -m pip install numpy
 #    && python3 -m pip install opencv-python==3.3.1.11 \
 #    && python3 -m pip install opencv-contrib-python==3.3.1.11
@@ -145,13 +148,14 @@ RUN apt-get update
 RUN apt-get install -y --fix-missing software-properties-common && \
     add-apt-repository -y ppa:xorg-edgers/ppa && apt-get update  \
     && apt install -y libdrm-dev  libx11-dev python-mako libx11-xcb-dev libxcb-dri2-0-dev mesa-utils\
-    libxcb-glx0-dev libxxf86vm-dev libxfixes-dev libxdamage-dev libxext-dev libexpat1-dev flex bison scons meson\
-#    libxcb-glx0-dev libxxf86vm-dev libxfixes-dev libxdamage-dev libxext-dev libexpat1-dev flex bison meson\
-    && git clone https://gitlab.freedesktop.org/mesa/mesa.git \
-    && cd mesa \
+    libxcb-glx0-dev libxxf86vm-dev libxfixes-dev libxdamage-dev libxext-dev libexpat1-dev flex bison scons meson \
+    && git clone https://gitlab.freedesktop.org/mesa/mesa.git
+RUN cd mesa \
+    && git checkout 159abd527ec191e8274876162b30079c4ea39600 \
     && scons libgl-xlib force_scons=1\
 #    && meson libgl-xlib \
     && echo "export LD_LIBRARY_PATH=/mesa/build/linux-x86_64-debug/gallium/targets/libgl-xlib/:$LD_LIBRARY_PATH" >> /root/.bashrc
+
 
 RUN apt install -y gedit
 
@@ -160,7 +164,39 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git \
     && cd librealsense && ./scripts/setup_udev_rules.sh \
     && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
 
-RUN pip3 install pillow && pip3 install scipy && pip3 install sklearn && pip3 install pyrealsense2
+RUN cd /librealsense/build && make install
+
+RUN pip3 install pillow && pip3 install scipy && pip3 install sklearn && pip3 install pyrealsense2 && pip3 install open3d
+
+RUN echo "alias python=python3" >> /root/.bashrc
+RUN echo 'export LD_LIBRARY_PATH="/usr/local/lib"' >> /root/.bashrc
+
+
+# installing TEASER-plusplus
+COPY cmake-3.20.2-linux-x86_64.sh /
+COPY install_cmake.sh /
+RUN chmod +x cmake-3.20.2-linux-x86_64.sh
+RUN sh -c "/bin/echo -e 'y' | bash install_cmake.sh"
+RUN echo "export PATH='/cmake-3.20.2-linux-x86_64/bin/:$PATH'" >> /root/.bashrc
+
+
+COPY eigen-3.2.10.zip /
+RUN unzip eigen-3.2.10.zip
+RUN cd eigen-3.2.10 && mkdir build && cd build && /cmake-3.20.2-linux-x86_64/bin/cmake .. && make && make install
+COPY Eigen3Config.cmake /eigen-3.2.10/build
+
+COPY Miniconda3-py39_4.9.2-Linux-x86_64.sh /
+
+RUN git clone https://github.com/BOpermanis/TEASER-plusplus.git
+
+RUN cd TEASER-plusplus \
+    && mkdir build \
+    && cd build \
+    && /cmake-3.20.2-linux-x86_64/bin/cmake -DTEASERPP_PYTHON_VERSION=3.5 .. \
+    && make \
+    && sudo make install \
+    && cd .. && cd examples/teaser_cpp_ply \
+    && mkdir build && cd build && cmake .. && make
 
 EXPOSE 2222
 CMD ["/run.sh"]
